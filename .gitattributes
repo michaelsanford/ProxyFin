@@ -1,0 +1,8 @@
+# Force LF line endings for files that run inside Linux containers or as
+# POSIX shell scripts, regardless of a client's core.autocrlf setting.
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile* text eol=lf
+Caddyfile text eol=lf
+compose.yaml text eol=lf
+*.json text eol=lf
