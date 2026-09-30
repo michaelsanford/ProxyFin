@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-compose:
+    name: Validate Compose Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate compose.yaml syntax
+        run: |
+          DOMAIN=example.com \
+          SUBDOMAIN=jellyfin \
+          HOSTED_ZONE_ID=Z0123456789ABCDEF \
+          AWS_ACCESS_KEY_ID=MOCK_KEY_ID \
+          AWS_SECRET_ACCESS_KEY=MOCK_SECRET_KEY \
+          docker compose config --quiet
+
+  build-and-validate-caddy:
+    name: Build Caddy & Validate Caddyfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Caddy image with Route53 plugin
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: proxyfin-caddy:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Validate Caddyfile syntax
+        run: |
+          docker run --rm \
+            -e DOMAIN=example.com \
+            -e SUBDOMAIN=jellyfin \
+            -e HOSTED_ZONE_ID=Z0123456789ABCDEF \
+            -v ${{ github.workspace }}/Caddyfile:/etc/caddy/Caddyfile:ro \
+            proxyfin-caddy:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+  build-and-test-ddns:
+    name: Build DDNS Init & Test Config Rendering
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ddns-init image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.ddns-init
+          load: true
+          tags: proxyfin-ddns-init:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test DDNS config generation
+        run: |
+          mkdir -p ./tmp-output
+          docker run --rm \
+            -e DOMAIN=testdomain.org \
+            -e SUBDOMAIN=testmedia \
+            -e HOSTED_ZONE_ID=Z987654321 \
+            -e AWS_ACCESS_KEY_ID=AKIA_MOCK_TEST \
+            -e AWS_SECRET_ACCESS_KEY=MOCK_SECRET_TEST \
+            -e IP_VERSION="ipv4 or ipv6" \
+            -v ${{ github.workspace }}/config/ddns.json.template:/template/ddns.json.template:ro \
+            -v ${{ github.workspace }}/tmp-output:/output \
+            proxyfin-ddns-init:ci
+
+          test -f ./tmp-output/config.json
+          jq . ./tmp-output/config.json
+          grep "testmedia.testdomain.org" ./tmp-output/config.json
+          grep "Z987654321" ./tmp-output/config.json
+          grep "AKIA_MOCK_TEST" ./tmp-output/config.json
+
+  lint-shell:
+    name: Lint Shell Script
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: ./docker
+
+  lint-powershell:
+    name: Lint PowerShell Diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+          $results = Invoke-ScriptAnalyzer -Path ./Verify-Setup.ps1 -Severity Error
+          if ($results) {
+            $results | Format-Table -AutoSize
+            exit 1
+          } else {
+            Write-Host "PSScriptAnalyzer passed with 0 errors."
+          }

@@ -14,6 +14,7 @@ export IP_VERSION="${IP_VERSION:-ipv4 or ipv6}"
 TEMPLATE_PATH="${TEMPLATE_PATH:-/template/ddns.json.template}"
 OUTPUT_PATH="${OUTPUT_PATH:-/output/config.json}"
 
+# shellcheck disable=SC2016 # envsubst requires literal unexpanded variable list
 envsubst '${DOMAIN} ${SUBDOMAIN} ${HOSTED_ZONE_ID} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${IP_VERSION}' \
     < "$TEMPLATE_PATH" > "$OUTPUT_PATH"
 

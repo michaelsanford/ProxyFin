@@ -45,6 +45,12 @@ flowchart TD
 
 ```text
 proxyfin/
+├── .github/
+│   ├── dependabot.yml         # Automated dependency bump schedule (docker, compose, actions)
+│   ├── FUNDING.yml            # GitHub Sponsors configuration
+│   └── workflows/
+│       ├── ci.yml             # Build validation, Caddyfile check, DDNS test, linters
+│       └── dependabot-automerge.yml # Auto squash-merge for passing Dependabot PRs
 ├── .dockerignore              # Keeps secrets/runtime data out of the Docker build context
 ├── .env.example               # Environment variables template
 ├── .gitignore                 # Protects credentials and local state
@@ -158,3 +164,23 @@ The script verifies:
 
 - **HSTS Policy**: Initial HSTS header is configured to `max-age=3600` (1 hour) for safe testing. Once connectivity is confirmed stable, you can adjust `Strict-Transport-Security` in [`Caddyfile`](./Caddyfile) to `max-age=31536000; includeSubDomains`.
 - **Cloudflare WARP compatibility**: If the host runs Cloudflare WARP (or another full-tunnel VPN), `ddns-updater`'s public IP detection will report the VPN's egress IP instead of your real WAN IP unless excluded. `compose.yaml` pins `ddns-updater` to a single HTTP provider (`PUBLICIP_FETCHERS=http`, `PUBLICIP_HTTP_PROVIDERS=ipify`) and disables DNS-based detection, so only one domain — `api64.ipify.org` — needs to be added to WARP's Split Tunnel exclusions (Settings > Advanced > Split Tunnels) for accurate detection.
+
+---
+
+## Continuous Integration & Automated Updates
+
+Upstream dependencies (Caddy, Alpine, and `ddns-updater`) are pinned to specific version tags to ensure reproducible builds and prevent sudden home server downtime from unexpected breaking changes or compiler regressions.
+
+### Automated Dependency Management
+
+- **Dependabot**: Automatically checks for new versions of Docker base images, Docker Compose services, and GitHub Actions weekly, opening pull requests with version bumps.
+- **CI Test Suite**: Every PR triggers a comprehensive GitHub Actions test suite (`.github/workflows/ci.yml`):
+  1. **Docker Build & xcaddy Validation**: Compiles Caddy with the `caddy-dns/route53` plugin from source in Docker to guarantee plugin compatibility with new Caddy releases.
+  2. **Caddyfile Configuration Validation**: Runs `caddy validate` inside the built container to ensure reverse proxy syntax and directives remain valid.
+  3. **DDNS Init & Template Functional Test**: Executes `render-ddns-config.sh` against `config/ddns.json.template` and validates that the rendered output is syntactically valid JSON containing expected substitutions.
+  4. **Linting**: Lints shell scripts with ShellCheck and audits `Verify-Setup.ps1` with `PSScriptAnalyzer`.
+- **Hands-Free Auto-Merge**: Passing Dependabot PRs are automatically merged via squash-merge (`.github/workflows/dependabot-automerge.yml`).
+
+> [!NOTE]
+> To enable automated merging of passing Dependabot PRs, ensure **Allow auto-merge** is enabled under your GitHub repository's **Settings > General > Pull Requests**, and **Allow GitHub Actions to create and approve pull requests** is enabled under **Settings > Actions > General > Workflow permissions**.
+

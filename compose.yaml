@@ -38,7 +38,7 @@ services:
     restart: "no"
 
   ddns-updater:
-    image: qmcgaw/ddns-updater:latest
+    image: qmcgaw/ddns-updater:v2.10.0
     container_name: proxyfin-ddns
     restart: unless-stopped
     depends_on:
