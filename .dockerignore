@@ -1,0 +1,7 @@
+.git
+.github
+.env
+config/ddns.json
+data/
+*.log
+README.md
