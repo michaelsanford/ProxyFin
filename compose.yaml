@@ -1,0 +1,31 @@
+services:
+  caddy:
+    build: .
+    container_name: proxyfin-caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "443:443/udp" # HTTP/3 (QUIC)
+    environment:
+      - DOMAIN=${DOMAIN}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+      - ./config/caddy:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ddns-updater:
+    image: qmcgaw/ddns-updater:latest
+    container_name: proxyfin-ddns
+    restart: unless-stopped
+    environment:
+      - PERIOD=3600s
+      - UPDATE_COOLDOWN_PERIOD=300s
+      - CONFIG_FILEPATH=/updater/data/config.json
+    volumes:
+      - ./data/ddns:/updater/data
+      - ./config/ddns.json:/updater/data/config.json:ro

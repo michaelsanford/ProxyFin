@@ -1,0 +1,13 @@
+# Environment and credentials
+.env
+config/ddns.json
+
+# Persistent runtime data
+data/
+*.log
+
+# Operating system files
+Thumbs.db
+[Ee]hthumbs.db
+Desktop.ini
+.DS_Store
