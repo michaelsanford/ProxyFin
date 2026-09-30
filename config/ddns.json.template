@@ -6,7 +6,7 @@
       "access_key": "${AWS_ACCESS_KEY_ID}",
       "secret_key": "${AWS_SECRET_ACCESS_KEY}",
       "zone_id": "${HOSTED_ZONE_ID}",
-      "ip_version": "ipv4 or ipv6",
+      "ip_version": "${IP_VERSION}",
       "ttl": 3600
     }
   ]

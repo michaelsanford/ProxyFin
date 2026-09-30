@@ -31,6 +31,7 @@ services:
       - HOSTED_ZONE_ID=${HOSTED_ZONE_ID}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - IP_VERSION=${IP_VERSION:-ipv4 or ipv6}
     volumes:
       - ./config/ddns.json.template:/template/ddns.json.template:ro
       - ./data/ddns:/output
@@ -52,5 +53,7 @@ services:
       # Cloudflare WARP for public IP detection to stay accurate.
       - PUBLICIP_FETCHERS=http
       - PUBLICIP_HTTP_PROVIDERS=ipify
+      - PUBLICIPV4_HTTP_PROVIDERS=ipify
+      - PUBLICIPV6_HTTP_PROVIDERS=ipify
     volumes:
       - ./data/ddns:/updater/data
