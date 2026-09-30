@@ -8,6 +8,7 @@ services:
       - "443:443/udp" # HTTP/3 (QUIC)
     environment:
       - DOMAIN=${DOMAIN}
+      - SUBDOMAIN=${SUBDOMAIN}
       - HOSTED_ZONE_ID=${HOSTED_ZONE_ID}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -19,14 +20,32 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  ddns-config:
+    build:
+      context: .
+      dockerfile: Dockerfile.ddns-init
+    container_name: proxyfin-ddns-config
+    environment:
+      - DOMAIN=${DOMAIN}
+      - SUBDOMAIN=${SUBDOMAIN}
+      - HOSTED_ZONE_ID=${HOSTED_ZONE_ID}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./config/ddns.json.template:/template/ddns.json.template:ro
+      - ./data/ddns:/output
+    restart: "no"
+
   ddns-updater:
     image: qmcgaw/ddns-updater:latest
     container_name: proxyfin-ddns
     restart: unless-stopped
+    depends_on:
+      ddns-config:
+        condition: service_completed_successfully
     environment:
       - PERIOD=3600s
       - UPDATE_COOLDOWN_PERIOD=300s
       - CONFIG_FILEPATH=/updater/data/config.json
     volumes:
       - ./data/ddns:/updater/data
-      - ./config/ddns.json:/updater/data/config.json:ro

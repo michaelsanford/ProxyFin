@@ -1,6 +1,5 @@
 # Environment and credentials
 .env
-config/ddns.json
 
 # Persistent runtime data
 data/

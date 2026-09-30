@@ -73,10 +73,15 @@ if (Test-Path $envFile) {
 
 if (-not $Domain) {
     if ($envConfig.ContainsKey("DOMAIN") -and $envConfig["DOMAIN"]) {
-        $Domain = $envConfig["DOMAIN"]
+        if ($envConfig.ContainsKey("SUBDOMAIN") -and $envConfig["SUBDOMAIN"]) {
+            $Domain = "$($envConfig['SUBDOMAIN']).$($envConfig['DOMAIN'])"
+        } else {
+            $Domain = $envConfig["DOMAIN"]
+            Write-CheckResult "WARN" "No SUBDOMAIN found in .env; testing bare DOMAIN '$Domain'." "Set SUBDOMAIN=your-host in .env if the proxy is served from a subdomain."
+        }
     } else {
         $Domain = "jellyfin.example.com"
-        Write-CheckResult "WARN" "No DOMAIN found in .env; using placeholder 'jellyfin.example.com'" "Set DOMAIN=your.domain.com in .env or pass -Domain parameter."
+        Write-CheckResult "WARN" "No DOMAIN found in .env; using placeholder 'jellyfin.example.com'" "Set DOMAIN=your.domain.com and SUBDOMAIN=your-host in .env or pass -Domain parameter."
     }
 }
 Write-CheckResult "INFO" "Target domain: $Domain"
@@ -91,12 +96,12 @@ if ($envConfig.ContainsKey("AWS_ACCESS_KEY_ID")) {
     }
 }
 
-# Check ddns.json
-$ddnsFile = Join-Path $scriptDir "config\ddns.json"
+# Check ddns.json (rendered by the ddns-config container from config\ddns.json.template)
+$ddnsFile = Join-Path $scriptDir "data\ddns\config.json"
 if (Test-Path $ddnsFile) {
-    Write-CheckResult "PASS" "Found ddns.json at $ddnsFile"
+    Write-CheckResult "PASS" "Found rendered ddns config at $ddnsFile"
 } else {
-    Write-CheckResult "WARN" "config\ddns.json not found." "Copy config\ddns.json.example to config\ddns.json and populate credentials."
+    Write-CheckResult "WARN" "data\ddns\config.json not found." "Run 'docker compose up -d --build' to render it from config\ddns.json.template via the ddns-config service."
 }
 
 # 2. Local Jellyfin Service Check
@@ -213,7 +218,7 @@ if (-not $SkipRemoteChecks) {
         if ($publicIpv4 -and $resolvedA -eq $publicIpv4) {
             Write-CheckResult "PASS" "Route53 A record matches your current public IPv4 ($publicIpv4)."
         } elseif ($publicIpv4) {
-            Write-CheckResult "WARN" "Route53 A record ($resolvedA) does not match public IPv4 ($publicIpv4)." "Allow ddns-updater time to sync, or check AWS credentials in config/ddns.json."
+            Write-CheckResult "WARN" "Route53 A record ($resolvedA) does not match public IPv4 ($publicIpv4)." "Allow ddns-updater time to sync, or check AWS credentials in .env."
         }
     } catch {
         Write-CheckResult "FAIL" "Failed to resolve DNS A record for ${Domain}: $_" "Ensure the A record exists in Route53 zone."
