@@ -47,5 +47,10 @@ services:
       - PERIOD=3600s
       - UPDATE_COOLDOWN_PERIOD=300s
       - CONFIG_FILEPATH=/updater/data/config.json
+      # Pinned to a single HTTP provider (instead of "all") so only one
+      # domain (api64.ipify.org) needs to bypass a split-tunnel VPN like
+      # Cloudflare WARP for public IP detection to stay accurate.
+      - PUBLICIP_FETCHERS=http
+      - PUBLICIP_HTTP_PROVIDERS=ipify
     volumes:
       - ./data/ddns:/updater/data

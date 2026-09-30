@@ -157,3 +157,4 @@ The script verifies:
   ```
 
 - **HSTS Policy**: Initial HSTS header is configured to `max-age=3600` (1 hour) for safe testing. Once connectivity is confirmed stable, you can adjust `Strict-Transport-Security` in [`Caddyfile`](./Caddyfile) to `max-age=31536000; includeSubDomains`.
+- **Cloudflare WARP compatibility**: If the host runs Cloudflare WARP (or another full-tunnel VPN), `ddns-updater`'s public IP detection will report the VPN's egress IP instead of your real WAN IP unless excluded. `compose.yaml` pins `ddns-updater` to a single HTTP provider (`PUBLICIP_FETCHERS=http`, `PUBLICIP_HTTP_PROVIDERS=ipify`) and disables DNS-based detection, so only one domain — `api64.ipify.org` — needs to be added to WARP's Split Tunnel exclusions (Settings > Advanced > Split Tunnels) for accurate detection.
