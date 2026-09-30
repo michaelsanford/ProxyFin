@@ -1,6 +1,6 @@
 # Renders config/ddns.json.template -> data/ddns/config.json from .env at
 # container start, so DDNS credentials only need to be maintained in one place.
-FROM alpine:3.20
+FROM alpine:3.24
 
 RUN apk add --no-cache gettext
 
