@@ -119,9 +119,16 @@ In your home router management interface:
 - Forward external port **443 (TCP and UDP)** to the local IP address of this Windows machine.
 - *Note*: Port 80 does not need to be forwarded.
 
-### 5. Build and Launch Containers
+### 5. Launch Containers
 
-Ensure Docker Desktop is running on Windows, then run:
+Ensure Docker Desktop is running on Windows. You can pull the pre-built public images from GitHub Container Registry (fastest, zero Go compilation on your machine):
+
+```powershell
+docker compose pull
+docker compose up -d
+```
+
+Or, if you prefer to compile Caddy and the Route53 plugin locally from source:
 
 ```powershell
 docker compose up -d --build
@@ -179,6 +186,7 @@ Upstream dependencies (Caddy, Alpine, and `ddns-updater`) are pinned to specific
   2. **Caddyfile Configuration Validation**: Runs `caddy validate` inside the built container to ensure reverse proxy syntax and directives remain valid.
   3. **DDNS Init & Template Functional Test**: Executes `render-ddns-config.sh` against `config/ddns.json.template` and validates that the rendered output is syntactically valid JSON containing expected substitutions.
   4. **Linting**: Lints shell scripts with ShellCheck and audits `Verify-Setup.ps1` with `PSScriptAnalyzer`.
+- **GHCR Container Publishing**: On every push to `main` (including merged Dependabot updates), pre-built multi-stage images are automatically published to GitHub Container Registry (`ghcr.io/michaelsanford/proxyfin-caddy` and `ghcr.io/michaelsanford/proxyfin-ddns-init`).
 - **Hands-Free Auto-Merge**: Passing Dependabot PRs are automatically merged via squash-merge (`.github/workflows/dependabot-automerge.yml`).
 
 > [!NOTE]
