@@ -1,5 +1,6 @@
 services:
   caddy:
+    image: ghcr.io/michaelsanford/proxyfin-caddy:latest
     build: .
     container_name: proxyfin-caddy
     restart: unless-stopped
@@ -21,6 +22,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   ddns-config:
+    image: ghcr.io/michaelsanford/proxyfin-ddns-init:latest
     build:
       context: .
       dockerfile: Dockerfile.ddns-init
