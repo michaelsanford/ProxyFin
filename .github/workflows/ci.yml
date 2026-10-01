@@ -180,3 +180,21 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/proxyfin-ddns-init:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Prune old Caddy image versions
+        uses: actions/delete-package-versions@v5
+        continue-on-error: true
+        with:
+          package-name: 'proxyfin-caddy'
+          package-type: 'container'
+          min-versions-to-keep: 3
+          ignore-versions: '^latest$'
+
+      - name: Prune old DDNS init image versions
+        uses: actions/delete-package-versions@v5
+        continue-on-error: true
+        with:
+          package-name: 'proxyfin-ddns-init'
+          package-type: 'container'
+          min-versions-to-keep: 3
+          ignore-versions: '^latest$'
