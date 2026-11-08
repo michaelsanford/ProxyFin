@@ -5,13 +5,20 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Dependabot PRs are merged with GITHUB_TOKEN, and pushes made with that token
+  # never trigger workflows, so those merges would otherwise never be published.
+  # The daily run publishes main only if its commit is not already on GHCR.
+  schedule:
+    - cron: '30 13 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run on main: it may be halfway through pushing images.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate-compose:
@@ -138,7 +145,7 @@ jobs:
       - build-and-test-ddns
       - lint-shell
       - lint-powershell
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -157,7 +164,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check whether this commit is already published
+        id: published
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          if docker manifest inspect "ghcr.io/$OWNER/proxyfin-caddy:$SHA" >/dev/null 2>&1 &&
+             docker manifest inspect "ghcr.io/$OWNER/proxyfin-ddns-init:$SHA" >/dev/null 2>&1; then
+            echo "Both images for $SHA are already on GHCR; skipping publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push Caddy image
+        if: steps.published.outputs.skip != 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -170,6 +190,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push DDNS init image
+        if: steps.published.outputs.skip != 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -182,6 +203,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Prune old Caddy image versions
+        if: steps.published.outputs.skip != 'true'
         uses: actions/delete-package-versions@v5
         continue-on-error: true
         with:
@@ -191,6 +213,7 @@ jobs:
           ignore-versions: '^latest$'
 
       - name: Prune old DDNS init image versions
+        if: steps.published.outputs.skip != 'true'
         uses: actions/delete-package-versions@v5
         continue-on-error: true
         with:
