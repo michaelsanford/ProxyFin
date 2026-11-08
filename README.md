@@ -186,8 +186,8 @@ Upstream dependencies (Caddy, Alpine, and `ddns-updater`) are pinned to specific
   2. **Caddyfile Configuration Validation**: Runs `caddy validate` inside the built container to ensure reverse proxy syntax and directives remain valid.
   3. **DDNS Init & Template Functional Test**: Executes `render-ddns-config.sh` against `config/ddns.json.template` and validates that the rendered output is syntactically valid JSON containing expected substitutions.
   4. **Linting**: Lints shell scripts with ShellCheck and audits `Verify-Setup.ps1` with `PSScriptAnalyzer`.
-- **GHCR Container Publishing**: On every push to `main` (including merged Dependabot updates), pre-built multi-stage images are automatically published to GitHub Container Registry (`ghcr.io/michaelsanford/proxyfin-caddy` and `ghcr.io/michaelsanford/proxyfin-ddns-init`).
-- **Hands-Free Auto-Merge**: Passing Dependabot PRs are automatically merged via squash-merge (`.github/workflows/dependabot-automerge.yml`).
+- **GHCR Container Publishing**: On every push to `main`, pre-built multi-stage images are automatically published to GitHub Container Registry (`ghcr.io/michaelsanford/proxyfin-caddy` and `ghcr.io/michaelsanford/proxyfin-ddns-init`). Merges made by the auto-merge workflow use `GITHUB_TOKEN`, which cannot trigger workflows, so a daily scheduled run (and `workflow_dispatch`) also publishes `main` whenever its commit is not yet on GHCR.
+- **Hands-Free Auto-Merge**: Dependabot patch and minor updates are squash-merged automatically once the required CI checks pass (`.github/workflows/dependabot-automerge.yml`). Major updates are left open for review.
 
 > [!NOTE]
 > To enable automated merging of passing Dependabot PRs, ensure **Allow auto-merge** is enabled under your GitHub repository's **Settings > General > Pull Requests**, and **Allow GitHub Actions to create and approve pull requests** is enabled under **Settings > Actions > General > Workflow permissions**.
